@@ -7,8 +7,9 @@
   </head>
   <body>
 
-    {% for book, author in books %}
+    {% for poster, book, author in books %}
     <div>
+      <img src="{{ poster.poster_url }}" alt="{{ book.title }}">
       <h3>{{ book.title }}</h3>
       <p>Author: {{ author.name }}</p>
     </div>

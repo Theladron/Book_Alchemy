@@ -13,7 +13,6 @@ class Author(db.Model):
     def __repr__(self):
         return f"<Author {self.name}>"
 
-
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(80), nullable=False)
@@ -26,3 +25,8 @@ class Book(db.Model):
                 f"publication year: {self.publication_year}, isbn: {self.isbn}")
     def __repr__(self):
         return f"<Book {self.title}>"
+
+class BookPoster(db.Model):
+    id  = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    book_isbn = db.Column(db.String(80), db.ForeignKey('book.isbn'), nullable=False)
+    poster_url = db.Column(db.String(80), nullable=False)

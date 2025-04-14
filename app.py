@@ -1,8 +1,8 @@
 import os
 import datetime
+import requests
 from flask import Flask, render_template, redirect, url_for, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
-from data_models import db, Author, Book
+from data_models import db, Author, Book, BookPoster
 
 app = Flask(__name__)
 
@@ -50,6 +50,8 @@ def add_book():
         isbn = request.form.get("isbn")
         publication_year = request.form.get("publication_year")
         author_id = request.form.get("author_id")
+
+        # checking for empty fields
         if not title or title.strip() == "":
             return jsonify({"error": "Title is required"}), 400
         if not isbn or isbn.strip() == "":
@@ -59,20 +61,56 @@ def add_book():
         if not author_id or author_id.strip() == "":
             return jsonify({"error": "Author ID is required"}), 400
 
-        book = Book(title=title, isbn=isbn, publication_year=publication_year, author_id=author_id)
+        # checking for existing book
+        existing_book = Book.query.filter_by(isbn=isbn).first()
+        if not existing_book:
+            book = Book(
+                title=title,
+                isbn=isbn,
+                publication_year=publication_year,
+                author_id=author_id
+            )
+        else:
+            return jsonify({"error": "Book with this ISBN already exists"}), 400
+        url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}"
+
+        # fetching book poster, handling data error
+        try:
+            response = requests.get(url).json()
+        except requests.exceptions.RequestException:
+            return jsonify({"error": "Error connecting to Google Books API"}), 400
+        if response['totalItems'] == 0:
+            return jsonify({"error": "No book found with this ISBN"}), 400
+
+        # checking title
+        if title != response['items'][0]['volumeInfo']['title']:
+            return jsonify({"error": "Title does not match the book found"}), 400
+
+        # creating fallback in case the book exists, but the poster is not found
+        try:
+            item = response.get('items', [])[0]
+            thumbnail = item['volumeInfo']['imageLinks']['thumbnail']
+        except (IndexError, KeyError, TypeError):
+            thumbnail = os.path.abspath(os.path.dirname(__file__)).join('static',
+                                                                        'backup_cover.png')
+
+        poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
+
         db.session.add(book)
+        db.session.add(poster)
         db.session.commit()
         return jsonify({"message": "Book created successfully"}), 201
     return render_template('add_book.html')
 
 @app.route('/')
 def index():
-    books = db.session.query(Book, Author).join(Author).all()
+    books = db.session.query(BookPoster, Book, Author).join(Author).join(BookPoster).all()
+
 
     return render_template('home.html', books=books)
 
 
-# with app.app_context():
-#     db.create_all()
+#with app.app_context():
+    #db.create_all()
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002, debug=True)
