@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
     <title>Library</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   </head>
   <body>
     <form id="sortForm" method="get" action="{{ url_for('index') }}">
       <label for="search">Suche:</label>
-      <input type="text" name="search" id="search" value="{{ search }}" placeholder="Titel oder Autor" />
+      <input type="text" name="search" id="search" value="{{ search }}" placeholder="Title or Author" />
       <button type="submit">Apply</button>
       <a href="{{ url_for('index') }}"><button type="button">Reset</button></a>
+
       <label for="sort_by">Sort by:</label>
       <select name="sort_by" id="sort_by">
         <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Title</option>
@@ -24,22 +26,25 @@
         <option value="asc" {% if order == 'asc' %}selected{% endif %}>Ascending</option>
         <option value="desc" {% if order == 'desc' %}selected{% endif %}>Descending</option>
       </select>
-
-
     </form>
 
     {% if books %}
-      {% for poster, book, author in books %}
-        <div>
-          <img src="{{ poster.poster_url }}" alt="{{ book.title }}">
-          <h3>{{ book.title }}</h3>
-          <p>Autor: {{ author.name }}</p>
-        </div>
-      {% endfor %}
+      <div class="book-container">
+        {% for poster, book, author in books %}
+          <div class="book-card" data-book-id="{{ book.id }}">
+            <img src="{{ poster.poster_url }}" alt="{{ book.title }}">
+            <h3>{{ book.title }}</h3>
+            <p>Autor: {{ author.name }}</p>
+            <p>Jahr: {{ book.publication_year }}</p>
+            <button class="delete-btn">Löschen</button>
+          </div>
+        {% endfor %}
+      </div>
     {% else %}
-      <p>Kein Buch gefunden für "{{ search }}"</p>
+      <p>No books found for "{{ search }}"</p>
     {% endif %}
 
     <script src="{{ url_for('static', filename='js/sort_handler.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/delete_handler.js') }}"></script>
   </body>
 </html>

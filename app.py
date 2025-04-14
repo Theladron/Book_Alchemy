@@ -91,7 +91,7 @@ def add_book():
             item = response.get('items', [])[0]
             thumbnail = item['volumeInfo']['imageLinks']['thumbnail']
         except (IndexError, KeyError, TypeError):
-            thumbnail = "static/image/backup_cover.png"
+            thumbnail = "static/image/fallback_cover.png"
 
         poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
 
@@ -99,7 +99,33 @@ def add_book():
         db.session.add(poster)
         db.session.commit()
         return jsonify({"message": "Book created successfully"}), 201
+    query = db.session.query(Author)
     return render_template('add_book.html')
+
+
+@app.route('/book/<int:book_id>/delete', methods=["DELETE"])
+def delete_book(book_id):
+    book = Book.query.get(book_id)
+
+    if not book:
+        return jsonify({"error": "Book not found"}), 404
+
+    author_id = book.author_id
+    db.session.delete(book)
+    db.session.commit()
+
+    remaining_books = Book.query.filter_by(author_id=author_id).count()
+
+    # checking if author has no other books
+    if remaining_books == 0:
+        author = Author.query.get(author_id)
+        db.session.delete(author)
+        db.commit()
+        return jsonify({
+            "message": "Book and its author (no other books) deleted successfully"
+        }), 200
+
+    return jsonify({"message": "Book deleted successfully"}), 200
 
 @app.route('/')
 def index():
