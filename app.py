@@ -91,8 +91,7 @@ def add_book():
             item = response.get('items', [])[0]
             thumbnail = item['volumeInfo']['imageLinks']['thumbnail']
         except (IndexError, KeyError, TypeError):
-            thumbnail = os.path.abspath(os.path.dirname(__file__)).join('static',
-                                                                        'backup_cover.png')
+            thumbnail = "static/image/backup_cover.png"
 
         poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
 
@@ -104,10 +103,28 @@ def add_book():
 
 @app.route('/')
 def index():
-    books = db.session.query(BookPoster, Book, Author).join(Author).join(BookPoster).all()
+    sort_by = request.args.get("sort_by", "title")
+    order = request.args.get("order", "asc")
 
+    query = db.session.query(BookPoster,
+                             Book,
+                             Author).join(Book, BookPoster.book_isbn == Book.isbn).join(Author)
 
-    return render_template('home.html', books=books)
+    sort_columns = {
+        "title": Book.title,
+        "author": Author.name,
+        "year": Book.publication_year
+    }
+
+    sort_column = sort_columns.get(sort_by, Book.title)
+
+    if order == "desc":
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
+
+    books = query.all()
+    return render_template('home.html', books=books, sort_by=sort_by, order=order)
 
 
 #with app.app_context():
