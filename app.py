@@ -105,10 +105,19 @@ def add_book():
 def index():
     sort_by = request.args.get("sort_by", "title")
     order = request.args.get("order", "asc")
+    search = request.args.get("search", "").strip()
 
     query = db.session.query(BookPoster,
                              Book,
-                             Author).join(Book, BookPoster.book_isbn == Book.isbn).join(Author)
+                             Author).join(Book,
+                                          BookPoster.book_isbn == Book.isbn).join(Author)
+
+    if search:
+        search_like = f"%{search}%"
+        query = query.filter(db.or_(
+            Book.title.ilike(search_like),
+            Author.name.ilike(search_like)
+        ))
 
     sort_columns = {
         "title": Book.title,
@@ -124,8 +133,7 @@ def index():
         query = query.order_by(sort_column.asc())
 
     books = query.all()
-    return render_template('home.html', books=books, sort_by=sort_by, order=order)
-
+    return render_template('home.html', books=books, sort_by=sort_by, order=order, search=search)
 
 #with app.app_context():
     #db.create_all()
