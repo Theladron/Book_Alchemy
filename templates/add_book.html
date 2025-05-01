@@ -1,30 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Add Book</title>
-  </head>
-  <body>
+<head>
+  <meta charset="UTF-8" />
+  <title>Add Book</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/add_book.css') }}">
+  <script defer src="{{ url_for('static', filename='js/add_book.js') }}"></script>
+</head>
+<body>
+  <button type="button" onclick="location.href='{{ url_for('index') }}'">← Back to Home</button>
 
-    <h1>Add New Book</h1>
+  {% if not authors %}
+    <p>No authors in the database. Please <button type="button" onclick="location.href='{{ url_for('add_author') }}'">create an author</button> first.</p>
+  {% else %}
+    <h1>Add a New Book</h1>
+    <div class="button-group">
+      <button type="button" onclick="switchMode('manual')">Manual Entry</button>
+      <button type="button" onclick="switchMode('isbn_lookup')">Search by ISBN</button>
+    </div>
 
-    <form action="/add_book" method="POST">
-        <label for="title">Title:</label><br>
-        <input type="text" id="title" name="title" required><br><br>
+    <form id="bookForm" method="POST" action="/add_book">
+      <input type="hidden" name="mode" id="mode" value="manual" />
 
-        <label for="isbn">ISBN:</label><br>
-        <input type="text" id="isbn" name="isbn" required><br><br>
+      <label for="isbn">ISBN:</label>
+      <input type="text" id="isbn" name="isbn" required />
 
-        <label for="publication_year">Publication Year:</label><br>
-        <input type="number" id="publication_year" name="publication_year" required><br><br>
+      <div id="manualFields">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" />
 
-        <label for="author_id">Author ID:</label><br>
-        <input type="number" id="author_id" name="author_id" required><br><br>
+        <label for="publication_year">Publication Year:</label>
+        <input type="number" id="publication_year" name="publication_year" />
 
-        <input type="submit" value="Add Book">
+        <label for="author_id">Author:</label>
+        <select id="author_id" name="author_id" required>
+          {% for author in authors %}
+            <option value="{{ author.id }}">{{ author.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="button" onclick="submitForm()">Add Book</button>
     </form>
 
-  </body>
+    <p id="message" class="error-message"></p>
+  {% endif %}
+</body>
 </html>

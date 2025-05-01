@@ -1,0 +1,59 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 2rem;
+  max-width: 600px;
+  margin: auto;
+  background-color: #f9f9f9;
+}
+
+h1 {
+  text-align: center;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: bold;
+  margin-top: 1rem;
+}
+
+input, select, button {
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+button {
+  width: fit-content;
+  padding: 0.5rem 1rem;
+  background-color: #2a77d4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+button:hover {
+  background-color: #1d5fbf;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+  margin-top: 1rem;
+}
+
+#manualFields {
+  display: block;
+}

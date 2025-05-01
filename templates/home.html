@@ -8,11 +8,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   </head>
   <body>
+    <header class="header">
+      <h1>Library</h1>
+      <nav>
+        <button type="button" onclick="location.href='{{ url_for('add_book') }}'">Add Book</button>
+        <button type="button" onclick="location.href='{{ url_for('add_author') }}'">Add Author</button>
+      </nav>
+    </header>
+
     <form id="sortForm" method="get" action="{{ url_for('index') }}">
       <label for="search">Suche:</label>
       <input type="text" name="search" id="search" value="{{ search }}" placeholder="Title or Author" />
       <button type="submit">Apply</button>
-      <a href="{{ url_for('index') }}"><button type="button">Reset</button></a>
+      <button type="button" onclick="location.href='{{ url_for('index') }}'">Reset</button>
 
       <label for="sort_by">Sort by:</label>
       <select name="sort_by" id="sort_by">
@@ -36,12 +44,17 @@
             <h3>{{ book.title }}</h3>
             <p>Autor: {{ author.name }}</p>
             <p>Jahr: {{ book.publication_year }}</p>
-            <button class="delete-btn">Löschen</button>
+            <button type="button" class="delete-author-btn" data-author-id="{{ author.id }}">Autor löschen</button>
+            <button type="button" class="delete-btn">Löschen</button>
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <p>No books found for "{{ search }}"</p>
+      {% if search %}
+        <p>No books found for "{{ search }}"</p>
+      {% else %}
+        <p>No books in the database. Please add a book first.</p>
+      {% endif %}
     {% endif %}
 
     <script src="{{ url_for('static', filename='js/sort_handler.js') }}"></script>

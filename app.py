@@ -45,87 +45,144 @@ def add_author():
 
 @app.route('/add_book', methods=["GET", "POST"])
 def add_book():
+    authors = Author.query.order_by(Author.name).all()
+
     if request.method == "POST":
-        title = request.form.get("title")
-        isbn = request.form.get("isbn")
-        publication_year = request.form.get("publication_year")
-        author_id = request.form.get("author_id")
+        mode = request.form.get("mode")  # "manual" or "isbn_lookup"
+        isbn = request.form.get("isbn", "").strip()
 
-        # checking for empty fields
-        if not title or title.strip() == "":
-            return jsonify({"error": "Title is required"}), 400
-        if not isbn or isbn.strip() == "":
+        if not isbn:
             return jsonify({"error": "ISBN is required"}), 400
-        if not publication_year or publication_year.strip() == "":
-            return jsonify({"error": "Publication year is required"}), 400
-        if not author_id or author_id.strip() == "":
-            return jsonify({"error": "Author ID is required"}), 400
 
-        # checking for existing book
-        existing_book = Book.query.filter_by(isbn=isbn).first()
-        if not existing_book:
+        # Check if book already exists
+        if Book.query.filter_by(isbn=isbn).first():
+            return jsonify({"error": "Book with this ISBN already exists"}), 400
+
+        # ===== MODE 1: ISBN LOOKUP =====
+        if mode == "isbn_lookup":
+            url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}"
+            try:
+                response = requests.get(url).json()
+            except requests.exceptions.RequestException:
+                return jsonify({"error": "Error connecting to Google Books API"}), 400
+
+            if response.get("totalItems", 0) == 0:
+                return jsonify({"error": "No book found with this ISBN"}), 400
+
+            item = response['items'][0]['volumeInfo']
+
+            title = item.get("title")
+            published_year = item.get("publishedDate", "")[:4]
+            author_name = item.get("authors", [""])[0]
+
+            if not title or not published_year or not author_name:
+                return jsonify({"error": "Incomplete book data from API"}), 400
+
+            # Match author by name
+            author = Author.query.filter(Author.name.ilike(author_name)).first()
+            if not author:
+                return jsonify({"error": f"Author '{author_name}' not found in database. Please add them first."}), 400
+
+            # Get poster
+            thumbnail = item.get('imageLinks', {}).get('thumbnail', "static/image/fallback_cover.png")
+
+            # Create entries
+            book = Book(title=title, isbn=isbn, publication_year=int(published_year), author_id=author.id)
+            poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
+
+            db.session.add(book)
+            db.session.add(poster)
+            db.session.commit()
+
+            return jsonify({"message": "Book added using ISBN lookup"}), 201
+
+        # ===== MODE 2: MANUAL ENTRY =====
+        elif mode == "manual":
+            title = request.form.get("title", "").strip()
+            publication_year = request.form.get("publication_year", "").strip()
+            author_id = request.form.get("author_id", "").strip()
+
+            if not title or not publication_year or not author_id:
+                return jsonify({"error": "All fields are required in manual mode"}), 400
+
+            # Get poster from API, fallback if not found
+            try:
+                api_response = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}").json()
+                item = api_response.get("items", [])[0]
+                thumbnail = item.get("volumeInfo", {}).get("imageLinks", {}).get("thumbnail", "static/image/fallback_cover.png")
+            except Exception:
+                thumbnail = "static/image/fallback_cover.png"
+
             book = Book(
                 title=title,
                 isbn=isbn,
-                publication_year=publication_year,
-                author_id=author_id
+                publication_year=int(publication_year),
+                author_id=int(author_id)
             )
-        else:
-            return jsonify({"error": "Book with this ISBN already exists"}), 400
-        url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}"
+            poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
 
-        # fetching book poster, handling data error
-        try:
-            response = requests.get(url).json()
-        except requests.exceptions.RequestException:
-            return jsonify({"error": "Error connecting to Google Books API"}), 400
-        if response['totalItems'] == 0:
-            return jsonify({"error": "No book found with this ISBN"}), 400
+            db.session.add(book)
+            db.session.add(poster)
+            db.session.commit()
 
-        # checking title
-        if title != response['items'][0]['volumeInfo']['title']:
-            return jsonify({"error": "Title does not match the book found"}), 400
+            return jsonify({"message": "Book manually added"}), 201
 
-        # creating fallback in case the book exists, but the poster is not found
-        try:
-            item = response.get('items', [])[0]
-            thumbnail = item['volumeInfo']['imageLinks']['thumbnail']
-        except (IndexError, KeyError, TypeError):
-            thumbnail = "static/image/fallback_cover.png"
+        return jsonify({"error": "Invalid submission mode"}), 400
 
-        poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
-
-        db.session.add(book)
-        db.session.add(poster)
-        db.session.commit()
-        return jsonify({"message": "Book created successfully"}), 201
-    query = db.session.query(Author)
-    return render_template('add_book.html')
+    return render_template('add_book.html', authors=authors)
 
 
 @app.route('/book/<int:book_id>/delete', methods=["DELETE"])
 def delete_book(book_id):
     book = Book.query.get(book_id)
-
     if not book:
         return jsonify({"error": "Book not found"}), 404
 
     author_id = book.author_id
+    isbn = book.isbn
+
+    # 1) Delete any posters for this book
+    BookPoster.query.filter_by(book_isbn=isbn).delete(synchronize_session=False)
+
+    # 2) Delete the book itself
     db.session.delete(book)
     db.session.commit()
 
+    # 3) Check remaining books by this author
     remaining_books = Book.query.filter_by(author_id=author_id).count()
-
-    # checking if author has no other books
     if remaining_books == 0:
-        author = Author.query.get(author_id)
-        db.session.delete(author)
-        db.commit()
+        # Inform frontend that this was the author's last book
         return jsonify({
-            "message": "Book and its author (no other books) deleted successfully"
+            "message": "Book deleted successfully. This was the author's last book.",
+            "author_id": author_id
         }), 200
 
     return jsonify({"message": "Book deleted successfully"}), 200
+
+
+@app.route('/author/<int:author_id>/delete', methods=["DELETE"])
+def delete_author(author_id):
+    author = Author.query.get(author_id)
+    if not author:
+        return jsonify({"error": "Author not found"}), 404
+
+    # 1) Gather all ISBNs for this author's books
+    isbns = [book.isbn for book in Book.query.filter_by(author_id=author_id).all()]
+
+    # 2) Delete all posters for those ISBNs
+    if isbns:
+        BookPoster.query.filter(BookPoster.book_isbn.in_(isbns)) \
+                        .delete(synchronize_session=False)
+
+    # 3) Delete all books by this author
+    Book.query.filter_by(author_id=author_id).delete(synchronize_session=False)
+
+    # 4) Finally delete the author
+    db.session.delete(author)
+    db.session.commit()
+
+    return jsonify({"message": "Author and all their books deleted"}), 200
+
 
 @app.route('/')
 def index():
