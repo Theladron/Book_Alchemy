@@ -2,45 +2,56 @@ import os
 import datetime
 import requests
 from flask import Flask, render_template, redirect, url_for, jsonify, request
-from data_models import db, Author, Book, BookPoster
+from data_models import db, Author, Book, BookPoster, BookDetails
+from db_validator import validate_database
 
 app = Flask(__name__)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'data', 'library.sqlite')}"
+data_folder = os.path.join(basedir, 'data')
+db_file = os.path.join(data_folder, 'library.sqlite')
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_file}"
+
+# Checks if the database, tables and columns exist
+validate_database(app)
 
 db.init_app(app)
 
 @app.route('/add_author', methods=["GET", "POST"])
 def add_author():
     if request.method == "POST":
-        name = request.form.get("name")
+        name = request.form.get("name").strip()
         birth_date = request.form.get("birthdate")
         date_of_death = request.form.get("date_of_death")
+
+        # Check duplicate author
+        if Author.query.filter(Author.name.ilike(name)).first():
+            return jsonify({"error": f"Author '{name}' already exists."}), 400
 
         if not birth_date:
             return jsonify({"error": "Birth date is required"}), 400
 
-        if not name or name.strip() == "":
+        if not name:
             return jsonify({"error": "Name is required"}), 400
 
         try:
-
             birth_date = datetime.datetime.strptime(birth_date, "%Y-%m-%d").date()
         except ValueError:
             return jsonify({"error": "Invalid birthdate format. Use YYYY-MM-DD."}), 400
 
-        if date_of_death.strip() == "":
-            date_of_death = None
-        elif date_of_death:
+        if date_of_death:
             try:
                 date_of_death = datetime.datetime.strptime(date_of_death, "%Y-%m-%d").date()
             except ValueError:
                 return jsonify({"error": "Invalid date_of_death format. Use YYYY-MM-DD."}), 400
+        else:
+            date_of_death = None
+
         author = Author(name=name, birth_date=birth_date, date_of_death=date_of_death)
         db.session.add(author)
         db.session.commit()
-        return jsonify({"message": "Author created successfully"}), 201
+        return jsonify({"message": "Author created successfully", "author_id": author.id}), 201
+
     return render_template('add_author.html')
 
 @app.route('/add_book', methods=["GET", "POST"])
@@ -58,76 +69,79 @@ def add_book():
         if Book.query.filter_by(isbn=isbn).first():
             return jsonify({"error": "Book with this ISBN already exists"}), 400
 
+        # Set defaults / fallbacks
+        thumbnail = "static/image/fallback_cover.png"
+        info_link = "No data available for this book"
+        data = {"totalItems": 0, "items": []}
+
+        # Try fetching from the API for both modes
+        try:
+            resp = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}")
+            data = resp.json()
+            if data.get("totalItems", 0) > 0:
+                vol = data["items"][0]["volumeInfo"]
+                # override fallback values if present
+                thumbnail = vol.get("imageLinks", {}).get("thumbnail", thumbnail)
+                info_link = vol.get("infoLink", info_link)
+        except requests.exceptions.RequestException:
+            # silent fallback since we created default data for this case
+            pass
+
         # ===== MODE 1: ISBN LOOKUP =====
         if mode == "isbn_lookup":
-            url = f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}"
-            try:
-                response = requests.get(url).json()
-            except requests.exceptions.RequestException:
-                return jsonify({"error": "Error connecting to Google Books API"}), 400
-
-            if response.get("totalItems", 0) == 0:
+            if data.get("totalItems", 0) == 0:
                 return jsonify({"error": "No book found with this ISBN"}), 400
 
-            item = response['items'][0]['volumeInfo']
+            vol = data["items"][0]["volumeInfo"]
+            title = vol.get("title")
+            year = vol.get("publishedDate", "")[:4]
+            author_name = vol.get("authors", [""])[0]
 
-            title = item.get("title")
-            published_year = item.get("publishedDate", "")[:4]
-            author_name = item.get("authors", [""])[0]
-
-            if not title or not published_year or not author_name:
+            if not title or not year or not author_name:
                 return jsonify({"error": "Incomplete book data from API"}), 400
 
-            # Match author by name
             author = Author.query.filter(Author.name.ilike(author_name)).first()
             if not author:
                 return jsonify({"error": f"Author '{author_name}' not found in database. Please add them first."}), 400
 
-            # Get poster
-            thumbnail = item.get('imageLinks', {}).get('thumbnail', "static/image/fallback_cover.png")
-
-            # Create entries
-            book = Book(title=title, isbn=isbn, publication_year=int(published_year), author_id=author.id)
-            poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
-
-            db.session.add(book)
-            db.session.add(poster)
-            db.session.commit()
-
-            return jsonify({"message": "Book added using ISBN lookup"}), 201
+            book = Book(
+                title=title,
+                isbn=isbn,
+                publication_year=int(year),
+                author_id=author.id
+            )
 
         # ===== MODE 2: MANUAL ENTRY =====
         elif mode == "manual":
             title = request.form.get("title", "").strip()
-            publication_year = request.form.get("publication_year", "").strip()
+            year = request.form.get("publication_year", "").strip()
             author_id = request.form.get("author_id", "").strip()
 
-            if not title or not publication_year or not author_id:
+            if not title or not year or not author_id:
                 return jsonify({"error": "All fields are required in manual mode"}), 400
-
-            # Get poster from API, fallback if not found
-            try:
-                api_response = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}").json()
-                item = api_response.get("items", [])[0]
-                thumbnail = item.get("volumeInfo", {}).get("imageLinks", {}).get("thumbnail", "static/image/fallback_cover.png")
-            except Exception:
-                thumbnail = "static/image/fallback_cover.png"
 
             book = Book(
                 title=title,
                 isbn=isbn,
-                publication_year=int(publication_year),
+                publication_year=int(year),
                 author_id=int(author_id)
             )
-            poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
 
-            db.session.add(book)
-            db.session.add(poster)
-            db.session.commit()
+        else:
+            return jsonify({"error": "Invalid submission mode"}), 400
 
-            return jsonify({"message": "Book manually added"}), 201
+        # Persist Book and Poster
+        poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
+        db.session.add(book)
+        db.session.add(poster)
+        db.session.commit()
 
-        return jsonify({"error": "Invalid submission mode"}), 400
+        # Persist BookDetails (infoLink or fallback text)
+        details = BookDetails(book_isbn=isbn, details=info_link)
+        db.session.add(details)
+        db.session.commit()
+
+        return jsonify({"message": "Book added successfully"}), 201
 
     return render_template('add_book.html', authors=authors)
 
@@ -187,36 +201,44 @@ def delete_author(author_id):
 @app.route('/')
 def index():
     sort_by = request.args.get("sort_by", "title")
-    order = request.args.get("order", "asc")
-    search = request.args.get("search", "").strip()
+    order   = request.args.get("order", "asc")
+    search  = request.args.get("search", "").strip()
 
-    query = db.session.query(BookPoster,
-                             Book,
-                             Author).join(Book,
-                                          BookPoster.book_isbn == Book.isbn).join(Author)
+    # Base query: join BookPoster, Book, Author, BookDetails
+    query = (
+        db.session.query(BookPoster, Book, Author, BookDetails)
+        .join(Book, BookPoster.book_isbn == Book.isbn)
+        .join(Author, Book.author_id == Author.id)
+        .outerjoin(BookDetails, BookDetails.book_isbn == Book.isbn)
+    )
 
+    # Apply search filter
     if search:
-        search_like = f"%{search}%"
-        query = query.filter(db.or_(
-            Book.title.ilike(search_like),
-            Author.name.ilike(search_like)
-        ))
+        like = f"%{search}%"
+        query = query.filter(
+            db.or_(Book.title.ilike(like), Author.name.ilike(like))
+        )
 
-    sort_columns = {
+    # Sorting
+    columns = {
         "title": Book.title,
         "author": Author.name,
         "year": Book.publication_year
     }
-
-    sort_column = sort_columns.get(sort_by, Book.title)
-
+    col = columns.get(sort_by, Book.title)
     if order == "desc":
-        query = query.order_by(sort_column.desc())
+        query = query.order_by(col.desc())
     else:
-        query = query.order_by(sort_column.asc())
+        query = query.order_by(col.asc())
 
     books = query.all()
-    return render_template('home.html', books=books, sort_by=sort_by, order=order, search=search)
+    return render_template(
+        'home.html',
+        books=books,
+        sort_by=sort_by,
+        order=order,
+        search=search
+    )
 
 #with app.app_context():
     #db.create_all()

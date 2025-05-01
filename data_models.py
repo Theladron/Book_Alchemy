@@ -30,3 +30,19 @@ class BookPoster(db.Model):
     id  = db.Column(db.Integer, primary_key=True, autoincrement=True)
     book_isbn = db.Column(db.String(80), db.ForeignKey('book.isbn'), nullable=False)
     poster_url = db.Column(db.String(80), nullable=False)
+
+class BookDetails(db.Model):
+    id  = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    book_isbn = db.Column(db.String(80), db.ForeignKey('book.isbn'), nullable=False)
+    subtitle = db.Column(db.String(80), nullable=False)
+    description = db.Column(db.String(80), nullable=False)
+    publisher = db.Column(db.String(80), nullable=False)
+    pages = db.Column(db.Integer, nullable=False)
+    categories = db.Column(db.String(80), nullable=False)
+
+class AuthorDetails(db.Model):
+    id  = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=False)
+    top_subject = db.Column(db.String(80), nullable=False)
+    top_work = db.Column(db.String(80), nullable=False)
+    work_count = db.Column(db.Integer, nullable=False)

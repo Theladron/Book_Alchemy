@@ -75,3 +75,30 @@ form {
 .delete-author-btn:hover {
   background-color: #732d91;
 }
+
+.modal {
+  position: fixed; top:0; left:0; right:0; bottom:0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.modal.hidden { display: none; }
+.modal-backdrop {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.6);
+}
+.modal-content {
+  position:relative;
+  width:80%; height:80%;
+  background:white; border-radius:8px;
+  overflow:hidden;
+  display: flex; flex-direction: column;
+}
+.close-btn {
+  position:absolute; top:8px; right:12px;
+  background:none; border:none; font-size:1.5em; cursor:pointer;
+  z-index: 1001;
+}
+.detail-text {
+  padding: 1rem;
+  overflow: auto;
+}
