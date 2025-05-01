@@ -1,8 +1,6 @@
 import os
-import datetime
-import requests
-from flask import Flask, render_template, redirect, url_for, jsonify, request
-from data_models import db, Author, Book, BookPoster, BookDetails
+from flask import Flask
+from data_models import db
 from db_validator import validate_database
 from routes import register_blueprints
 

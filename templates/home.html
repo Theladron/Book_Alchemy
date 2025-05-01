@@ -11,16 +11,16 @@
     <header class="header">
       <h1>Library</h1>
       <nav>
-        <button type="button" onclick="location.href='{{ url_for('add_book') }}'">Add Book</button>
-        <button type="button" onclick="location.href='{{ url_for('add_author') }}'">Add Author</button>
+        <button type="button" onclick="location.href='{{ url_for('books.add_book') }}'">Add Book</button>
+        <button type="button" onclick="location.href='{{ url_for('authors.add_author') }}'">Add Author</button>
       </nav>
     </header>
 
-    <form id="sortForm" method="get" action="{{ url_for('index') }}">
+    <form id="sortForm" method="get" action="{{ url_for('main.index') }}">
       <label for="search">Suche:</label>
       <input type="text" name="search" id="search" value="{{ search }}" placeholder="Title or Author" />
       <button type="submit">Apply</button>
-      <button type="button" onclick="location.href='{{ url_for('index') }}'">Reset</button>
+      <button type="button" onclick="location.href='{{ url_for('main.index') }}'">Reset</button>
 
       <label for="sort_by">Sort by:</label>
       <select name="sort_by" id="sort_by">
@@ -61,7 +61,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <!-- empty-state logic unchanged -->
+      <p>No books found.</p>
     {% endif %}
 
     <!-- Detail Modal -->

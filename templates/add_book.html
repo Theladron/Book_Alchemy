@@ -8,10 +8,10 @@
   <script defer src="{{ url_for('static', filename='js/add_book.js') }}"></script>
 </head>
 <body>
-  <button type="button" onclick="location.href='{{ url_for('index') }}'">← Back to Home</button>
+  <button type="button" onclick="location.href='{{ url_for('main.index') }}'">← Back to Home</button>
 
   {% if not authors %}
-    <p>No authors in the database. Please <button type="button" onclick="location.href='{{ url_for('add_author') }}'">create an author</button> first.</p>
+    <p>No authors in the database. Please <button type="button" onclick="location.href='{{ url_for('authors.add_author') }}'">create an author</button> first.</p>
   {% else %}
     <h1>Add a New Book</h1>
     <div class="button-group">
@@ -19,7 +19,7 @@
       <button type="button" onclick="switchMode('isbn_lookup')">Search by ISBN</button>
     </div>
 
-    <form id="bookForm" method="POST" action="/add_book">
+    <form id="bookForm" method="POST" action="{{ url_for('books.add_book') }}">
       <input type="hidden" name="mode" id="mode" value="manual" />
 
       <label for="isbn">ISBN:</label>

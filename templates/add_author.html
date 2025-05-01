@@ -7,10 +7,10 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <button type="button" onclick="location.href='{{ url_for('index') }}'">← Back to Home</button>
+  <button type="button" onclick="location.href='{{ url_for('main.index') }}'">← Back to Home</button>
 
   <h1>Add New Author</h1>
-  <form action="/add_author" method="POST">
+  <form action="{{ url_for('authors.add_author') }}" method="POST">
     <label for="name">Author Name:</label><br>
     <input type="text" id="name" name="name" required><br><br>
 
