@@ -1,25 +1,26 @@
 from flask import Blueprint, render_template, request, jsonify
-from data_models import db, Author, Book, BookPoster
+from data_models import db, Author, Book, BookPoster, AuthorDetails
+from urllib.parse import quote_plus
 import datetime
+import requests
 
 authors_bp = Blueprint("authors", __name__)
 
 @authors_bp.route('/add_author', methods=["GET", "POST"])
 def add_author():
     if request.method == "POST":
-        name = request.form.get("name").strip()
+        name = request.form.get("name", "").strip()
         birth_date = request.form.get("birthdate")
         date_of_death = request.form.get("date_of_death")
 
-        # Check duplicate author
-        if Author.query.filter(Author.name.ilike(name)).first():
-            return jsonify({"error": f"Author '{name}' already exists."}), 400
-
+        if not name:
+            return jsonify({"error": "Name is required"}), 400
         if not birth_date:
             return jsonify({"error": "Birth date is required"}), 400
 
-        if not name:
-            return jsonify({"error": "Name is required"}), 400
+        # Check for duplicate
+        if Author.query.filter(Author.name.ilike(name)).first():
+            return jsonify({"error": f"Author '{name}' already exists."}), 400
 
         try:
             birth_date = datetime.datetime.strptime(birth_date, "%Y-%m-%d").date()
@@ -34,14 +35,45 @@ def add_author():
         else:
             date_of_death = None
 
-        author = Author(name=name, birth_date=birth_date, date_of_death=date_of_death)
-        db.session.add(author)
-        db.session.commit()
+        # Default values for details
+        top_subject = "N/A"
+        top_work = "N/A"
+        work_count = "N/A"
+
+        # Fetch OpenLibrary data
+        try:
+            url = f"https://openlibrary.org/search/authors.json?q={quote_plus(name)}"
+            resp = requests.get(url)
+            data = resp.json()
+            if data.get("numFound", 0) > 0:
+                author_data = data["docs"][0]
+                top_subject = author_data.get("top_subjects", ["N/A"])[0]
+                top_work = author_data.get("top_work", "N/A")
+                work_count = author_data.get("work_count", "N/A")
+        except requests.exceptions.RequestException:
+            pass
+
+        author = Author(name=name,
+                        birth_date=birth_date,
+                        date_of_death=date_of_death)
+
+        # Set up linked AuthorDetails (will be persisted via cascade)
+        author.details = AuthorDetails(
+            top_subject=top_subject,
+            top_work=top_work,
+            work_count=work_count
+        )
+
+        try:
+            db.session.add(author)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": "Database error", "details": str(e)}), 500
+
         return jsonify({"message": "Author created successfully", "author_id": author.id}), 201
 
     return render_template('add_author.html')
-
-
 
 
 @authors_bp.route('/author/<int:author_id>/delete', methods=["DELETE"])
@@ -50,18 +82,17 @@ def delete_author(author_id):
     if not author:
         return jsonify({"error": "Author not found"}), 404
 
-    # 1) Gather all ISBNs for this author's books
-    isbns = [book.isbn for book in Book.query.filter_by(author_id=author_id).all()]
+    # Find all book IDs for this author
+    book_ids = [book.id for book in Book.query.filter_by(author_id=author_id).all()]
 
-    # 2) Delete all posters for those ISBNs
-    if isbns:
-        BookPoster.query.filter(BookPoster.book_isbn.in_(isbns)) \
-                        .delete(synchronize_session=False)
+    # Delete associated posters
+    if book_ids:
+        BookPoster.query.filter(BookPoster.book_id.in_(book_ids)).delete(synchronize_session=False)
 
-    # 3) Delete all books by this author
-    Book.query.filter_by(author_id=author_id).delete(synchronize_session=False)
+    # Delete books (details will be deleted via cascade)
+    Book.query.filter(Book.id.in_(book_ids)).delete(synchronize_session=False)
 
-    # 4) Finally delete the author
+    # Delete author (details will be deleted via cascade)
     db.session.delete(author)
     db.session.commit()
 
