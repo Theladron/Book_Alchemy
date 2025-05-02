@@ -19,22 +19,31 @@ def add_book():
         if Book.query.filter_by(isbn=isbn).first():
             return jsonify({"error": "Book with this ISBN already exists"}), 400
 
-        # Set defaults / fallbacks
+        # Set default values
         thumbnail = "static/image/fallback_cover.png"
-        info_link = "No data available for this book"
+        info_link = "N/A"
+        subtitle = "N/A"
+        description = "N/A"
+        publisher = "N/A"
+        pages ="N/A"
+        categories = "N/A"
+
         data = {"totalItems": 0, "items": []}
 
-        # Try fetching from the API for both modes
         try:
             resp = requests.get(f"https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}")
             data = resp.json()
             if data.get("totalItems", 0) > 0:
                 vol = data["items"][0]["volumeInfo"]
-                # override fallback values if present
                 thumbnail = vol.get("imageLinks", {}).get("thumbnail", thumbnail)
                 info_link = vol.get("infoLink", info_link)
+                subtitle = vol.get("subtitle", subtitle)
+                description = vol.get("description", description)
+                publisher = vol.get("publisher", publisher)
+                pages = vol.get("pageCount", pages)
+                categories_list = vol.get("categories", [])
+                categories = ", ".join(categories_list) if categories_list else "N/A"
         except requests.exceptions.RequestException:
-            # silent fallback since we created default data for this case
             pass
 
         # ===== MODE 1: ISBN LOOKUP =====
@@ -52,7 +61,9 @@ def add_book():
 
             author = Author.query.filter(Author.name.ilike(author_name)).first()
             if not author:
-                return jsonify({"error": f"Author '{author_name}' not found in database. Please add them first."}), 400
+                return jsonify({
+                    "error": f"Author '{author_name}' not found in database. Please add them first."
+                }), 400
 
             book = Book(
                 title=title,
@@ -80,16 +91,20 @@ def add_book():
         else:
             return jsonify({"error": "Invalid submission mode"}), 400
 
-        # Persist Book and Poster
-        poster = BookPoster(book_isbn=isbn, poster_url=thumbnail)
-        db.session.add(book)
-        db.session.add(poster)
-        db.session.commit()
-
-        # Persist BookDetails (infoLink or fallback text)
-        details = BookDetails(book_isbn=isbn, details=info_link)
-        db.session.add(details)
-        db.session.commit()
+        try:
+            book.poster = BookPoster(poster_url=thumbnail)
+            book.details = BookDetails(
+                subtitle=subtitle,
+                description=description,
+                publisher=publisher,
+                pages=pages,
+                categories=categories
+            )
+            db.session.add(book)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": "Database error", "details": str(e)}), 500
 
         return jsonify({"message": "Book added successfully"}), 201
 
@@ -103,22 +118,45 @@ def delete_book(book_id):
         return jsonify({"error": "Book not found"}), 404
 
     author_id = book.author_id
-    isbn = book.isbn
 
-    # 1) Delete any posters for this book
-    BookPoster.query.filter_by(book_isbn=isbn).delete(synchronize_session=False)
+    try:
+        # Delete is cascaded for poster and details
+        db.session.delete(book)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error", "details": str(e)}), 500
 
-    # 2) Delete the book itself
-    db.session.delete(book)
-    db.session.commit()
-
-    # 3) Check remaining books by this author
+    # Check if this was the author's last book
     remaining_books = Book.query.filter_by(author_id=author_id).count()
     if remaining_books == 0:
-        # Inform frontend that this was the author's last book
         return jsonify({
             "message": "Book deleted successfully. This was the author's last book.",
             "author_id": author_id
         }), 200
 
     return jsonify({"message": "Book deleted successfully"}), 200
+
+@books_bp.route("/book_details/<int:book_id>")
+def book_details(book_id):
+    details = db.session.query(BookDetails).filter_by(book_id=book_id).first()
+
+    if not details:
+        return jsonify({"details": "No book details available."})
+
+    # Return relevant book information, fallback to "N/A" if missing
+    subtitle = details.subtitle or "N/A"
+    description = details.description or "N/A"
+    publisher = details.publisher or "N/A"
+    pages = details.pages or "N/A"
+    categories = details.categories or "N/A"
+
+    details_text = (
+        f"Subtitle: {subtitle}\n"
+        f"Description: {description}\n"
+        f"Publisher: {publisher}\n"
+        f"Pages: {pages}\n"
+        f"Categories: {categories}"
+    )
+
+    return jsonify({"details": details_text})

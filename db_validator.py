@@ -21,9 +21,10 @@ def validate_database(app):
 
         expected_tables = {
             'author': {'id', 'name', 'birth_date', 'date_of_death'},
-            'book': {'id', 'title', 'isbn', 'publication_year', 'author_id'},
-            'book_poster': {'id', 'book_isbn', 'poster_url'},
-            'book_details': {'id', 'book_isbn', 'subtitle', 'description', 'publisher', 'pages', 'categories'},
+            'book': {'id', 'title', 'isbn', 'publication_year', 'author_id', 'rating'},
+            'book_poster': {'id', 'book_id', 'poster_url'},
+            'book_details': {'id', 'book_id', 'subtitle', 'description',
+                             'publisher', 'pages', 'categories'},
             'author_details': {'id', 'author_id', 'top_subject', 'top_work', 'work_count'}
         }
 

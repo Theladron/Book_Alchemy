@@ -38,23 +38,18 @@
 
     {% if books %}
       <div class="book-container">
-        {% for poster, book, author, details in books %}
-          <div class="book-card"
-               data-book-id="{{ book.id }}"
-               data-details="{{ details.details | e }}">
-            <img src="{{ poster.poster_url }}" alt="{{ book.title }}">
-            <h3>{{ book.title }}</h3>
-            <p>Autor: {{ author.name }}</p>
+        {% for poster, book, author in books %}
+          <div class="book-card" data-book-id="{{ book.id }}" data-author-id="{{ author.id }}">
+            <img src="{{ poster.poster_url }}" alt="{{ book.title }}" class="poster clickable" data-book-id="{{ book.id }}">
+            <h3 class="book-title clickable" data-book-id="{{ book.id }}">{{ book.title }}</h3>
+            <p>
+              <span class="author-name clickable" data-author-id="{{ author.id }}">{{ author.name }}</span>
+            </p>
             <p>Jahr: {{ book.publication_year }}</p>
-            <button type="button"
-                    class="delete-author-btn"
-                    data-author-id="{{ author.id }}"
-                    onclick="event.stopPropagation()">
+            <button type="button" class="delete-author-btn" data-author-id="{{ author.id }}" onclick="event.stopPropagation()">
               Autor löschen
             </button>
-            <button type="button"
-                    class="delete-btn"
-                    onclick="event.stopPropagation()">
+            <button type="button" class="delete-btn" onclick="event.stopPropagation()">
               Löschen
             </button>
           </div>
@@ -69,7 +64,6 @@
       <div class="modal-backdrop" onclick="closeDetailModal()"></div>
       <div class="modal-content">
         <button class="close-btn" onclick="closeDetailModal()">✕</button>
-        <iframe id="detailFrame" style="width:100%;height:100%;border:none;"></iframe>
         <div id="detailText" class="detail-text hidden"></div>
       </div>
     </div>

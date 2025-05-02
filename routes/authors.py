@@ -97,3 +97,16 @@ def delete_author(author_id):
     db.session.commit()
 
     return jsonify({"message": "Author and all their books deleted"}), 200
+
+@authors_bp.route("/author_details/<int:author_id>")
+def author_details(author_id):
+    details = db.session.query(AuthorDetails).filter_by(author_id=author_id).first()
+
+    if not details:
+        return jsonify({"error": "No author details available."})
+
+    return jsonify({
+        "top_subject": details.top_subject or "N/A",
+        "top_work": details.top_work or "N/A",
+        "work_count": details.work_count or "N/A"
+    })

@@ -9,12 +9,10 @@ def index():
     order   = request.args.get("order", "asc")
     search  = request.args.get("search", "").strip()
 
-    # Base query: join BookPoster, Book, Author, BookDetails
     query = (
-        db.session.query(BookPoster, Book, Author, BookDetails)
-        .join(Book, BookPoster.book_isbn == Book.isbn)
+        db.session.query(BookPoster, Book, Author)  # only 3 items
+        .join(Book, BookPoster.book_id == Book.id)
         .join(Author, Book.author_id == Author.id)
-        .outerjoin(BookDetails, BookDetails.book_isbn == Book.isbn)
     )
 
     # Apply search filter
