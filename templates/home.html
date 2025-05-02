@@ -18,11 +18,12 @@
 
   <form id="sortForm" method="get" action="{{ url_for('main.index') }}">
     <!-- Search and sort form -->
-    <label for="search">Suche:</label>
+    <label for="search">Search:</label>
     <input type="text" name="search" id="search" value="{{ search }}" placeholder="Title or Author" />
     <button type="submit">Apply</button>
     <button type="button" onclick="location.href='{{ url_for('main.index') }}'">Reset</button>
 
+    <div id="sort-order-container">
     <label for="sort_by">Sort by:</label>
     <select name="sort_by" id="sort_by">
       <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Title</option>
@@ -35,6 +36,7 @@
       <option value="asc" {% if order == 'asc' %}selected{% endif %}>Ascending</option>
       <option value="desc" {% if order == 'desc' %}selected{% endif %}>Descending</option>
     </select>
+      </div>
   </form>
 
   {% if books %}
@@ -59,8 +61,8 @@
   </div>
       </div>
 
-          <button type="button" class="delete-author-btn" data-author-id="{{ author.id }}" onclick="event.stopPropagation()">Autor löschen</button>
-          <button type="button" class="delete-btn" onclick="event.stopPropagation()">Löschen</button>
+          <button type="button" class="delete-author-btn" data-author-id="{{ author.id }}" onclick="event.stopPropagation()">Delete Author</button>
+          <button type="button" class="delete-btn" onclick="event.stopPropagation()">Delete</button>
         </div>
       {% endfor %}
     </div>
@@ -70,7 +72,7 @@
 
   <!-- Recommendations Section -->
 <div id="bookRecommendationsSection" class="recommendations-section">
-  <h2>Book Recommendations</h2>
+
   <div id="bookRecommendationsContainer" class="recommendations-container">
     <p>Loading recommendations...</p>
   </div>

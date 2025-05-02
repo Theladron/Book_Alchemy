@@ -1,49 +1,58 @@
-document.addEventListener("DOMContentLoaded", () => {
-  switchMode("manual");  // Ensure default mode is shown on load
-});
-
 function switchMode(mode) {
-  // Set the mode value in the hidden input field
-  document.getElementById("mode").value = mode;
-
   const manualFields = document.getElementById("manualFields");
+  const modeInput = document.getElementById("mode");
+  const isbnField = document.getElementById("isbn");
 
-  // Show or hide manual entry fields based on the selected mode
   if (mode === "manual") {
     manualFields.style.display = "block";
-  } else {
+    modeInput.value = "manual";
+    isbnField.removeAttribute("required"); // Optional if you want to relax ISBN in manual
+  } else if (mode === "isbn_lookup") {
     manualFields.style.display = "none";
+    modeInput.value = "isbn_lookup";
+    isbnField.setAttribute("required", "required");
   }
 }
 
 function submitForm() {
-  // Get the form element
   const form = document.getElementById("bookForm");
-
-  // Create FormData object to collect form values
+  const messageDiv = document.getElementById("message");
   const formData = new FormData(form);
 
-  // Fetch request to submit the form data
   fetch("/add_book", {
     method: "POST",
     body: formData,
   })
-    .then(res => res.json())
-    .then(data => {
-      // If there's an error from the server, display it
+    .then((res) => res.json())
+    .then((data) => {
       if (data.error) {
-        document.getElementById("message").textContent = data.error;
+        messageDiv.textContent = data.error;
+        messageDiv.style.color = "red";
       } else {
-        // If successful, show the success message
-        document.getElementById("message").textContent = data.message;
+        messageDiv.textContent = data.message;
+        messageDiv.style.color = "green";
         form.reset();
-        // Optionally reset the mode to 'manual' after submission
         switchMode("manual");
+
+        // Optional: hide message after 3 seconds
+        setTimeout(() => {
+          messageDiv.textContent = "";
+        }, 3000);
       }
     })
-    .catch(err => {
-      // In case of a network error or any other error, show a generic error message
-      document.getElementById("message").textContent = "Fehler beim Senden des Formulars.";
-      console.error(err);
+    .catch((err) => {
+      console.error("Form submission error:", err);
+      messageDiv.textContent = "An error occurred while submitting the form.";
+      messageDiv.style.color = "red";
     });
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  switchMode("manual");
+
+  const form = document.getElementById("bookForm");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault(); // Prevent default form submission
+    submitForm();       // Handle via JS
+  });
+});

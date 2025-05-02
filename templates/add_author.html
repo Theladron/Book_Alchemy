@@ -5,22 +5,39 @@
   <title>Add Author</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/add_author.css') }}">
 </head>
-<body>
-  <button type="button" onclick="location.href='{{ url_for('main.index') }}'">← Back to Home</button>
 
-  <h1>Add New Author</h1>
-  <form action="{{ url_for('authors.add_author') }}" method="POST">
-    <label for="name">Author Name:</label><br>
-    <input type="text" id="name" name="name" required><br><br>
 
-    <label for="birthdate">Birthdate:</label><br>
-    <input type="date" id="birthdate" name="birthdate" required><br><br>
+  <header class="header">
+    <h1>Library</h1>
+    <nav>
+      <button type="button" onclick="location.href='{{ url_for('main.index') }}'">← Back to Home</button>
+    </nav>
+  </header>
 
-    <label for="date_of_death">Date of Death:</label><br>
-    <input type="date" id="date_of_death" name="date_of_death"><br><br>
+  <main>
+    <h2 class="form-title">Add New Author</h2>
 
-    <input type="submit" value="Add Author">
-  </form>
+    <form action="{{ url_for('authors.add_author') }}" method="POST">
+      <div class="form-group">
+        <label for="name">Author Name:</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="birthdate">Birthdate:</label>
+        <input type="date" id="birthdate" name="birthdate" required>
+      </div>
+
+      <div class="form-group">
+        <label for="date_of_death">Date of Death:</label>
+        <input type="date" id="date_of_death" name="date_of_death">
+      </div>
+
+      <input type="submit" value="Add Author">
+    </form>
+  </main>
+  <script src="{{ url_for('static', filename='js/add_author.js') }}"></script>
 </body>
 </html>

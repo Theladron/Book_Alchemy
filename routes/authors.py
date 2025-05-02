@@ -36,29 +36,29 @@ def add_author():
         else:
             date_of_death = None
 
-        # Default values for details
+        # Default placeholders
         top_subject = "N/A"
         top_work = "N/A"
         work_count = "N/A"
 
-        # Fetch OpenLibrary data
+        # Try OpenLibrary lookup
         try:
             url = f"https://openlibrary.org/search/authors.json?q={quote_plus(name)}"
             resp = requests.get(url)
             data = resp.json()
             if data.get("numFound", 0) > 0:
-                author_data = data["docs"][0]
-                top_subject = author_data.get("top_subjects", ["N/A"])[0]
-                top_work = author_data.get("top_work", "N/A")
-                work_count = author_data.get("work_count", "N/A")
-        except requests.exceptions.RequestException:
+                doc = data["docs"][0]
+                top_subject = doc.get("top_subjects", ["N/A"])[0]
+                top_work    = doc.get("top_work", "N/A")
+                work_count  = doc.get("work_count", "N/A")
+        except requests.RequestException:
             pass
 
-        author = Author(name=name,
-                        birth_date=birth_date,
-                        date_of_death=date_of_death)
-
-        # Set up linked AuthorDetails (will be persisted via cascade)
+        author = Author(
+            name=name,
+            birth_date=birth_date,
+            date_of_death=date_of_death
+        )
         author.details = AuthorDetails(
             top_subject=top_subject,
             top_work=top_work,
@@ -72,8 +72,10 @@ def add_author():
             db.session.rollback()
             return jsonify({"error": "Database error", "details": str(e)}), 500
 
-        return jsonify({"message": "Author created successfully", "author_id": author.id}), 201
+        # **Return plain-text success message, 201**, mirroring add_book behavior
+        return jsonify({"message": "Author created successfully"}), 201
 
+    # GET: render the form
     return render_template('add_author.html')
 
 

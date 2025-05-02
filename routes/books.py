@@ -191,7 +191,7 @@ def get_recommendations(book_id):
 
     return jsonify({"recommendations": recommendations})
 
-
+@books_bp.route("/book/<int:book_id>/update_rating", methods=["POST"])
 def update_rating(book_id):
     book = Book.query.get(book_id)
     if not book:
