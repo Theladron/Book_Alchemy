@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify
 from data_models import db, Book, BookPoster, BookDetails, Author
+from services.chatgpt import get_book_recommendations
 import requests
 
 books_bp = Blueprint("books", __name__)
+
 
 @books_bp.route('/add_book', methods=["GET", "POST"])
 def add_book():
@@ -25,7 +27,7 @@ def add_book():
         subtitle = "N/A"
         description = "N/A"
         publisher = "N/A"
-        pages ="N/A"
+        pages = "N/A"
         categories = "N/A"
 
         data = {"totalItems": 0, "items": []}
@@ -139,12 +141,19 @@ def delete_book(book_id):
 
     return jsonify({"message": "Book deleted successfully"}), 200
 
+
 @books_bp.route("/book_details/<int:book_id>")
 def book_details(book_id):
+    # Fetch the book details
     details = db.session.query(BookDetails).filter_by(book_id=book_id).first()
 
     if not details:
         return jsonify({"details": "No book details available."})
+
+    # Fetch book details
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({"error": "Book not found"}), 404
 
     # Return relevant book information, fallback to "N/A" if missing
     subtitle = details.subtitle or "N/A"
@@ -163,7 +172,26 @@ def book_details(book_id):
 
     return jsonify({"details": details_text})
 
-@books_bp.route("/book/<int:book_id>/update_rating", methods=["POST"])
+
+@books_bp.route("/book/<int:book_id>/recommendations", methods=["GET"])
+def get_recommendations(book_id):
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({"error": "Book not found"}), 404
+
+    details = book.details
+    title = book.title
+
+    # Ensure categories are not None or empty, default to "N/A"
+    genre = details.categories if details and details.categories and details.categories != "N/A" else "N/A"
+
+    recommendation_text = get_book_recommendations(title, genre)
+    recommendations = recommendation_text.split('\n')
+    recommendations = [line.strip() for line in recommendations if line.strip()]
+
+    return jsonify({"recommendations": recommendations})
+
+
 def update_rating(book_id):
     book = Book.query.get(book_id)
     if not book:

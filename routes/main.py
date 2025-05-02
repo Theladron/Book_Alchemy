@@ -1,5 +1,7 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, jsonify
 from data_models import db, Book, BookPoster, Author, BookDetails
+from services.chatgpt import get_homepage_recommendations
+
 
 main_bp = Blueprint("main", __name__)
 
@@ -42,3 +44,17 @@ def index():
         order=order,
         search=search
     )
+
+@main_bp.route('/book_recommendations', methods=["GET"])
+def book_recommendations():
+    # Fetch all books with ratings greater than 0
+    books_with_ratings = Book.query.filter(Book.rating > 0).all()
+
+    # Fetch recommendations based on those books
+    recommendations_text = get_homepage_recommendations(books_with_ratings)
+
+    # Split the recommendations into individual lines
+    recommendations = recommendations_text.split('\n')
+    recommendations = [line.strip() for line in recommendations if line.strip()]
+
+    return jsonify({"recommendations": recommendations})

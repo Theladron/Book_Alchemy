@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify
 from data_models import db, Author, Book, BookPoster, AuthorDetails
 from urllib.parse import quote_plus
+from services.chatgpt import get_author_recommendations
 import datetime
 import requests
 
@@ -110,3 +111,24 @@ def author_details(author_id):
         "top_work": details.top_work or "N/A",
         "work_count": details.work_count or "N/A"
     })
+
+@authors_bp.route("/author/<int:author_id>/recommendations", methods=["GET"])
+def get_author_recommendations_route(author_id):
+    # Retrieve the author from the database
+    author = Author.query.get(author_id)
+    if not author:
+        return jsonify({"error": "Author not found"}), 404
+
+    # Retrieve the top_subject from the associated AuthorDetails
+    author_details = author.details  # This assumes that AuthorDetails is linked to the Author
+    if not author_details:
+        return jsonify({"error": "Author details not found"}), 404
+
+    # Get recommendations based on both the author's name and top_subject
+    recommendation_text = get_author_recommendations(author.name, author_details.top_subject)
+
+    # Split the response text into individual recommendations
+    recommendations = recommendation_text.split('\n')
+    recommendations = [line.strip() for line in recommendations if line.strip()]
+
+    return jsonify({"recommendations": recommendations})

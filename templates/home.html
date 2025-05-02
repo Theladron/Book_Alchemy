@@ -68,12 +68,21 @@
     <p>No books found.</p>
   {% endif %}
 
+  <!-- Recommendations Section -->
+<div id="bookRecommendationsSection" class="recommendations-section">
+  <h2>Book Recommendations</h2>
+  <div id="bookRecommendationsContainer" class="recommendations-container">
+    <p>Loading recommendations...</p>
+  </div>
+</div>
+
   <!-- Detail Modal -->
   <div id="detailModal" class="modal hidden">
     <div class="modal-backdrop" onclick="closeDetailModal()"></div>
     <div class="modal-content">
       <button class="close-btn" onclick="closeDetailModal()">✕</button>
       <div id="detailText" class="detail-text hidden"></div>
+      <div id="recommendations" class="recommendations hidden"></div>
     </div>
   </div>
 
