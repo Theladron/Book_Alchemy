@@ -1,76 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Library</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  </head>
-  <body>
-    <header class="header">
-      <h1>Library</h1>
-      <nav>
-        <button type="button" onclick="location.href='{{ url_for('books.add_book') }}'">Add Book</button>
-        <button type="button" onclick="location.href='{{ url_for('authors.add_author') }}'">Add Author</button>
-      </nav>
-    </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Library</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="header">
+    <h1>Library</h1>
+    <nav>
+      <button type="button" onclick="location.href='{{ url_for('books.add_book') }}'">Add Book</button>
+      <button type="button" onclick="location.href='{{ url_for('authors.add_author') }}'">Add Author</button>
+    </nav>
+  </header>
 
-    <form id="sortForm" method="get" action="{{ url_for('main.index') }}">
-      <label for="search">Suche:</label>
-      <input type="text" name="search" id="search" value="{{ search }}" placeholder="Title or Author" />
-      <button type="submit">Apply</button>
-      <button type="button" onclick="location.href='{{ url_for('main.index') }}'">Reset</button>
+  <form id="sortForm" method="get" action="{{ url_for('main.index') }}">
+    <!-- Search and sort form -->
+    <label for="search">Suche:</label>
+    <input type="text" name="search" id="search" value="{{ search }}" placeholder="Title or Author" />
+    <button type="submit">Apply</button>
+    <button type="button" onclick="location.href='{{ url_for('main.index') }}'">Reset</button>
 
-      <label for="sort_by">Sort by:</label>
-      <select name="sort_by" id="sort_by">
-        <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Title</option>
-        <option value="author" {% if sort_by == 'author' %}selected{% endif %}>Author</option>
-        <option value="year" {% if sort_by == 'year' %}selected{% endif %}>Year</option>
-      </select>
+    <label for="sort_by">Sort by:</label>
+    <select name="sort_by" id="sort_by">
+      <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Title</option>
+      <option value="author" {% if sort_by == 'author' %}selected{% endif %}>Author</option>
+      <option value="year" {% if sort_by == 'year' %}selected{% endif %}>Year</option>
+    </select>
 
-      <label for="order">Order:</label>
-      <select name="order" id="order">
-        <option value="asc" {% if order == 'asc' %}selected{% endif %}>Ascending</option>
-        <option value="desc" {% if order == 'desc' %}selected{% endif %}>Descending</option>
-      </select>
-    </form>
+    <label for="order">Order:</label>
+    <select name="order" id="order">
+      <option value="asc" {% if order == 'asc' %}selected{% endif %}>Ascending</option>
+      <option value="desc" {% if order == 'desc' %}selected{% endif %}>Descending</option>
+    </select>
+  </form>
 
-    {% if books %}
-      <div class="book-container">
-        {% for poster, book, author in books %}
-          <div class="book-card" data-book-id="{{ book.id }}" data-author-id="{{ author.id }}">
-            <img src="{{ poster.poster_url }}" alt="{{ book.title }}" class="poster clickable" data-book-id="{{ book.id }}">
-            <h3 class="book-title clickable" data-book-id="{{ book.id }}">{{ book.title }}</h3>
-            <p>
-              <span class="author-name clickable" data-author-id="{{ author.id }}">{{ author.name }}</span>
-            </p>
-            <p>Jahr: {{ book.publication_year }}</p>
-            <button type="button" class="delete-author-btn" data-author-id="{{ author.id }}" onclick="event.stopPropagation()">
-              Autor löschen
-            </button>
-            <button type="button" class="delete-btn" onclick="event.stopPropagation()">
-              Löschen
-            </button>
-          </div>
-        {% endfor %}
+  {% if books %}
+    <div class="book-container">
+      {% for poster, book, author in books %}
+        <div class="book-card" data-book-id="{{ book.id }}" data-author-id="{{ author.id }}">
+          <img src="{{ poster.poster_url }}" alt="{{ book.title }}" class="poster clickable" data-book-id="{{ book.id }}">
+          <h3 class="book-title clickable" data-book-id="{{ book.id }}">{{ book.title }}</h3>
+          <p>
+            <span class="author-name clickable" data-author-id="{{ author.id }}">{{ author.name }}</span>
+          </p>
+
+          <div class="rating-container">
+  <div class="rating-heading">Rate this Book</div>
+
+  <div class="rating-bar" data-book-id="{{ book.id }}" data-selected-rating="{{ book.rating }}">
+    {% for i in range(1, 11) %}
+      <span class="rating-star {% if book.rating == i %}selected{% endif %}" data-rating="{{ i }}">
+        ★
+      </span>
+    {% endfor %}
+  </div>
       </div>
-    {% else %}
-      <p>No books found.</p>
-    {% endif %}
 
-    <!-- Detail Modal -->
-    <div id="detailModal" class="modal hidden">
-      <div class="modal-backdrop" onclick="closeDetailModal()"></div>
-      <div class="modal-content">
-        <button class="close-btn" onclick="closeDetailModal()">✕</button>
-        <div id="detailText" class="detail-text hidden"></div>
-      </div>
+          <button type="button" class="delete-author-btn" data-author-id="{{ author.id }}" onclick="event.stopPropagation()">Autor löschen</button>
+          <button type="button" class="delete-btn" onclick="event.stopPropagation()">Löschen</button>
+        </div>
+      {% endfor %}
     </div>
+  {% else %}
+    <p>No books found.</p>
+  {% endif %}
 
-    <!-- scripts -->
-    <script src="{{ url_for('static', filename='js/sort_handler.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/delete_handler.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/detail_modal.js') }}"></script>
-  </body>
+  <!-- Detail Modal -->
+  <div id="detailModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeDetailModal()"></div>
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeDetailModal()">✕</button>
+      <div id="detailText" class="detail-text hidden"></div>
+    </div>
+  </div>
+
+  <!-- scripts -->
+  <script src="{{ url_for('static', filename='js/sort_handler.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/delete_handler.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/detail_modal.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/rating_handler.js') }}"></script>
+</body>
 </html>

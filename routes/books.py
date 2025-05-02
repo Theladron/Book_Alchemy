@@ -69,7 +69,8 @@ def add_book():
                 title=title,
                 isbn=isbn,
                 publication_year=int(year),
-                author_id=author.id
+                author_id=author.id,
+                rating=0
             )
 
         # ===== MODE 2: MANUAL ENTRY =====
@@ -85,7 +86,8 @@ def add_book():
                 title=title,
                 isbn=isbn,
                 publication_year=int(year),
-                author_id=int(author_id)
+                author_id=int(author_id),
+                rating=0
             )
 
         else:
@@ -160,3 +162,24 @@ def book_details(book_id):
     )
 
     return jsonify({"details": details_text})
+
+@books_bp.route("/book/<int:book_id>/update_rating", methods=["POST"])
+def update_rating(book_id):
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({"error": "Book not found"}), 404
+
+    # Get the new rating from the request
+    new_rating = request.json.get("rating")
+    if not new_rating or not (1 <= new_rating <= 10):
+        return jsonify({"error": "Rating must be between 1 and 10"}), 400
+
+    # Update the book's rating
+    book.rating = new_rating
+
+    try:
+        db.session.commit()
+        return jsonify({"message": "Rating updated successfully", "rating": new_rating}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Database error", "details": str(e)}), 500
