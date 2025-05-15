@@ -28,27 +28,27 @@ Before you install the program, make sure you have the following prerequisites i
 
 1. Clone the repository and install the dependencies via 
 ```bash
-  pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 2. Create a [Rapidapi](https://rapidapi.com/) account or log in on a google account
 3. go to the [Chatgpt 4](https://rapidapi.com/rphrp1985/api/chatgpt-42/playground) page 
 and subscribe to the free, basic plan
 4. Create a **.env** file in the root folder of the project and add
 ```bash
-  API_KEY="your key"
+API_KEY="your key"
 ```
 5. Run the **db_setup.py** once to create the database folder and file
 **Mac**
 ```bash
- python3 db_setup.py
+python3 db_setup.py
 ```
 **Windows**
 ```bash
- python db_setup.py
+python db_setup.py
 ```
 6. Run flask
 ```bash
-  flask run 
+flask run 
 ```
 Visit http://localhost:5000 in your browser to view the app
 
