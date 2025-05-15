@@ -2,28 +2,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const deleteBookButtons = document.querySelectorAll(".delete-btn");
   const deleteAuthorButtons = document.querySelectorAll(".delete-author-btn");
 
-  // === DELETE BOOK LOGIC ===
   deleteBookButtons.forEach(button => {
     button.addEventListener("click", async (event) => {
-      // 1. Prevent any default or other handlers
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
 
-      // 2. Disable the button so you can’t re-click
       button.disabled = true;
 
       const card = button.closest(".book-card");
       const bookId = card.dataset.bookId;
 
-      // 3. Single confirm for book deletion
       const deleteBookConfirmed = confirm("Willst du dieses Buch wirklich löschen?");
       if (!deleteBookConfirmed) {
         button.disabled = false;
         return;
       }
 
-      // 4. Delete the book
       let response, result;
       try {
         response = await fetch(`/book/${bookId}/delete`, { method: "DELETE" });
@@ -40,10 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 5. Remove the card from the UI
       card.remove();
 
-      // 6. If this was the last book, ask one more time, but for the author only
       if (result.author_id) {
         const deleteAuthor = confirm(
           "Das war das letzte Buch dieses Autors. Möchtest du den Autor ebenfalls löschen?"
@@ -62,12 +55,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Done — no further confirmations
-    }, { once: true });  // ensure this handler only fires once per button
+    }, { once: true });
   });
 
 
-  // === DELETE AUTHOR LOGIC ===
   deleteAuthorButtons.forEach(button => {
     button.addEventListener("click", async (event) => {
       event.preventDefault();

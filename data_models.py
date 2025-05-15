@@ -2,9 +2,6 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-# -----------------------
-# Author and AuthorDetails
-# -----------------------
 
 class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

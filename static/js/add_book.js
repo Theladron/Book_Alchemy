@@ -6,7 +6,7 @@ function switchMode(mode) {
   if (mode === "manual") {
     manualFields.style.display = "block";
     modeInput.value = "manual";
-    isbnField.removeAttribute("required"); // Optional if you want to relax ISBN in manual
+    isbnField.removeAttribute("required");
   } else if (mode === "isbn_lookup") {
     manualFields.style.display = "none";
     modeInput.value = "isbn_lookup";
@@ -34,7 +34,6 @@ function submitForm() {
         form.reset();
         switchMode("manual");
 
-        // Optional: hide message after 3 seconds
         setTimeout(() => {
           messageDiv.textContent = "";
         }, 3000);
@@ -53,6 +52,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("bookForm");
   form.addEventListener("submit", function (e) {
     e.preventDefault(); // Prevent default form submission
-    submitForm();       // Handle via JS
+    submitForm();
   });
 });

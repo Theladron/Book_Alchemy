@@ -1,12 +1,8 @@
-// static/js/detail_modal.js
-
-// Function to open modal with either book details or author details
 function openDetailModal(details, type, id) {
   const modal = document.getElementById('detailModal');
   const text = document.getElementById('detailText');
   const recommendationsContainer = document.getElementById('recommendations');
 
-  // Reset content
   text.classList.add('hidden');
   text.innerHTML = 'Loading...';
   recommendationsContainer.innerHTML = '';
@@ -14,13 +10,11 @@ function openDetailModal(details, type, id) {
 
   modal.classList.remove('hidden');
 
-  // Helper to render lines into individual boxes with bold keys
   function renderLines(raw, container) {
     container.innerHTML = '';
     raw.split('\n').forEach(line => {
       const trimmed = line.trim();
       if (!trimmed) return;
-      // split at first colon
       const idx = trimmed.indexOf(':');
       let key, value;
       if (idx > -1) {
@@ -32,7 +26,6 @@ function openDetailModal(details, type, id) {
       }
       const item = document.createElement('div');
       item.classList.add('detail-item');
-      // bold the key if present
       if (key) {
         item.innerHTML = `<strong>${key}:</strong> ${value}`;
       } else {
@@ -49,7 +42,6 @@ function openDetailModal(details, type, id) {
         renderLines(data.details || 'No book details available.', text);
         text.classList.remove('hidden');
 
-        // Recommendations
         recommendationsContainer.innerHTML = 'Loading recommendations...';
         recommendationsContainer.classList.remove('hidden');
         fetch(`/book/${id}/recommendations`)
@@ -87,7 +79,6 @@ function openDetailModal(details, type, id) {
         renderLines(raw, text);
         text.classList.remove('hidden');
 
-        // Recommendations
         recommendationsContainer.innerHTML = 'Loading recommendations...';
         recommendationsContainer.classList.remove('hidden');
         fetch(`/author/${id}/recommendations`)
@@ -115,35 +106,36 @@ function openDetailModal(details, type, id) {
   }
 }
 
-// Close the modal
 function closeDetailModal() {
   document.getElementById('detailModal').classList.add('hidden');
 }
 
-// Fetch and display homepage recommendations (only once)
-function fetchBookRecommendations() {
-  // Only fetch if there is at least one book-card on the page
-  if (document.querySelectorAll('.book-card').length === 0) {
-    return;
-  }
-
+function fetchFilteredBookRecommendations() {
   const recC = document.getElementById('bookRecommendationsContainer');
   if (!recC) return;
 
   recC.innerHTML = 'Loading recommendations...';
-  fetch('/book_recommendations')
+
+  const form = document.getElementById('sortForm');
+  const params = new URLSearchParams(new FormData(form)).toString();
+
+  fetch(`/book_recommendations?${params}`)
     .then(r => r.json())
     .then(data => {
       recC.innerHTML = '';
-      if (data.recommendations.length) {
+      if (data.recommendations?.length) {
         recC.innerHTML = '<strong>Recommended Books:</strong><ul>';
-        data.recommendations.forEach(r => recC.innerHTML += `<li>${r}</li>`);
+        data.recommendations.forEach(r => {
+          recC.innerHTML += `<li>${r}</li>`;
+        });
         recC.innerHTML += '</ul>';
       } else {
         recC.innerHTML = 'No recommendations available.';
       }
     })
-    .catch(() => recC.innerHTML = 'Failed to fetch recommendations.');
+    .catch(() => {
+      recC.innerHTML = 'Failed to fetch recommendations.';
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -153,11 +145,19 @@ document.addEventListener('DOMContentLoaded', () => {
       openDetailModal(null, 'book', el.dataset.bookId);
     });
   });
+
   document.querySelectorAll('.author-name').forEach(el => {
     el.addEventListener('click', e => {
       e.stopPropagation();
       openDetailModal(null, 'author', el.dataset.authorId);
     });
   });
-  fetchBookRecommendations();
+
+  const loadRecBtn = document.getElementById('loadRecommendationsBtn');
+  if (loadRecBtn) {
+    loadRecBtn.addEventListener('click', () => {
+      fetchFilteredBookRecommendations();
+    });
+  }
+
 });

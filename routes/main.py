@@ -1,15 +1,16 @@
 from flask import Blueprint, render_template, request, jsonify
-from data_models import db, Book, BookPoster, Author, BookDetails
+
+from data_models import db, Book, BookPoster, Author
 from services.chatgpt import get_homepage_recommendations
 
-
 main_bp = Blueprint("main", __name__)
+
 
 @main_bp.route('/')
 def index():
     sort_by = request.args.get("sort_by", "title")
-    order   = request.args.get("order", "asc")
-    search  = request.args.get("search", "").strip()
+    order = request.args.get("order", "asc")
+    search = request.args.get("search", "").strip()
 
     query = (
         db.session.query(BookPoster, Book, Author)  # only 3 items
@@ -17,14 +18,12 @@ def index():
         .join(Author, Book.author_id == Author.id)
     )
 
-    # Apply search filter
     if search:
         like = f"%{search}%"
         query = query.filter(
             db.or_(Book.title.ilike(like), Author.name.ilike(like))
         )
 
-    # Sorting
     columns = {
         "title": Book.title,
         "author": Author.name,
@@ -45,15 +44,13 @@ def index():
         search=search
     )
 
+
 @main_bp.route('/book_recommendations', methods=["GET"])
 def book_recommendations():
-    # Fetch all books with ratings greater than 0
     books_with_ratings = Book.query.filter(Book.rating > 0).all()
 
-    # Fetch recommendations based on those books
     recommendations_text = get_homepage_recommendations(books_with_ratings)
 
-    # Split the recommendations into individual lines
     recommendations = recommendations_text.split('\n')
     recommendations = [line.strip() for line in recommendations if line.strip()]
 
