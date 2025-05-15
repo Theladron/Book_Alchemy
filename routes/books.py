@@ -9,6 +9,9 @@ books_bp = Blueprint("books", __name__)
 
 @books_bp.route('/add_book', methods=["GET", "POST"])
 def add_book():
+    """Provides a Html page to add a book on get request, handles and validates
+    post requests, calls for additional book information and cover and adds it to the
+    database if valid, handles errors"""
     authors = Author.query.order_by(Author.name).all()
 
     if request.method == "POST":
@@ -114,6 +117,8 @@ def add_book():
 
 @books_bp.route('/book/<int:book_id>/delete', methods=["DELETE"])
 def delete_book(book_id):
+    """Handles book deletion, asks if the author should be deleted aswell if last book from
+    an author was deleted, handles exceptions"""
     book = Book.query.get(book_id)
     if not book:
         return jsonify({"error": "Book not found"}), 404
@@ -139,6 +144,7 @@ def delete_book(book_id):
 
 @books_bp.route("/book_details/<int:book_id>")
 def book_details(book_id):
+    """Returns book information if available, else N/A for missing entries, handles exceptions"""
     details = db.session.query(BookDetails).filter_by(book_id=book_id).first()
 
     if not details:
@@ -167,6 +173,8 @@ def book_details(book_id):
 
 @books_bp.route("/book/<int:book_id>/recommendations", methods=["GET"])
 def get_recommendations(book_id):
+    """Calls for book recommendations based on the current book and book genre, returns
+    the recommendations"""
     book = Book.query.get(book_id)
     if not book:
         return jsonify({"error": "Book not found"}), 404
@@ -174,7 +182,9 @@ def get_recommendations(book_id):
     details = book.details
     title = book.title
 
-    genre = details.categories if details and details.categories and details.categories != "N/A" else "N/A"
+    genre = details.categories if (details
+                                   and details.categories
+                                   and details.categories != "N/A") else "N/A"
 
     recommendation_text = get_book_recommendations(title, genre)
     recommendations = recommendation_text.split('\n')
@@ -185,6 +195,7 @@ def get_recommendations(book_id):
 
 @books_bp.route("/book/<int:book_id>/update_rating", methods=["POST"])
 def update_rating(book_id):
+    """Allows for a book to be rated betweeen 1 and 10, handles exceptions"""
     book = Book.query.get(book_id)
     if not book:
         return jsonify({"error": "Book not found"}), 404

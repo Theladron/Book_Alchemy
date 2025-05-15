@@ -12,6 +12,9 @@ authors_bp = Blueprint("authors", __name__)
 
 @authors_bp.route('/add_author', methods=["GET", "POST"])
 def add_author():
+    """Provides a Html page to add an author on get request, handles and validates
+    post requests, calls for additional author information and adds it to the
+    database if valid, handles errors"""
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         birth_date = request.form.get("birthdate")
@@ -79,6 +82,8 @@ def add_author():
 
 @authors_bp.route('/author/<int:author_id>/delete', methods=["DELETE"])
 def delete_author(author_id):
+    """Handles author deletion, deletes all books from the author if author is deleted,
+        handles exceptions"""
     author = Author.query.get(author_id)
     if not author:
         return jsonify({"error": "Author not found"}), 404
@@ -98,6 +103,7 @@ def delete_author(author_id):
 
 @authors_bp.route("/author_details/<int:author_id>")
 def author_details(author_id):
+    """Returns author information if available, else N/A for missing entries, handles exceptions"""
     details = db.session.query(AuthorDetails).filter_by(author_id=author_id).first()
 
     if not details:
@@ -112,6 +118,8 @@ def author_details(author_id):
 
 @authors_bp.route("/author/<int:author_id>/recommendations", methods=["GET"])
 def get_author_recommendations_route(author_id):
+    """Calls for author recommendations based on the current author the author's top genre, returns
+        the recommendations"""
     author = Author.query.get(author_id)
     if not author:
         return jsonify({"error": "Author not found"}), 404

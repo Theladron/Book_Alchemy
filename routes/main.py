@@ -8,6 +8,7 @@ main_bp = Blueprint("main", __name__)
 
 @main_bp.route('/')
 def index():
+    """Calls for the list of books in the database, handles search and sort queries"""
     sort_by = request.args.get("sort_by", "title")
     order = request.args.get("order", "asc")
     search = request.args.get("search", "").strip()
@@ -47,6 +48,8 @@ def index():
 
 @main_bp.route('/book_recommendations', methods=["GET"])
 def book_recommendations():
+    """Calls for book recommendations based on the current shown rated books, returns
+    the recommendations"""
     books_with_ratings = Book.query.filter(Book.rating > 0).all()
 
     recommendations_text = get_homepage_recommendations(books_with_ratings)
