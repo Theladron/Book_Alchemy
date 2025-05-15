@@ -5,7 +5,7 @@ Used apis: <br>
 
 | Author/Book infos | Recommendations | 
 |-------------------|-----------------|
-| [open library](https://openlibrary.org)             | [chatgpt 4](https://rapidapi.com/rphrp1985/api/chatgpt-42/playground/)         |
+| [Open Library](https://openlibrary.org)             | [Chatgpt 4](https://rapidapi.com/rphrp1985/api/chatgpt-42/playground/)         |
 
 
 
@@ -30,8 +30,8 @@ Before you install the program, make sure you have the following prerequisites i
 ```bash
   pip install -r requirements.txt 📋
 ```
-2. Create a [rapidapi](https://rapidapi.com/) account or log in on a google account
-3. go to the [chatgpt 4](https://rapidapi.com/rphrp1985/api/chatgpt-42/playground) page 
+2. Create a [Rapidapi](https://rapidapi.com/) account or log in on a google account
+3. go to the [Chatgpt 4](https://rapidapi.com/rphrp1985/api/chatgpt-42/playground) page 
 and subscribe to the free, basic plan
 4. Create a **.env** file in the root folder of the project and add
 ```bash
